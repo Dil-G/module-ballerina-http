@@ -11,12 +11,24 @@ import io.ballerina.stdlib.http.transport.message.HttpCarbonMessage;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpContent;
-import io.netty.incubator.codec.http3.*;
+import io.netty.incubator.codec.http3.DefaultHttp3HeadersFrame;
+import io.netty.incubator.codec.http3.Http3DataFrame;
+import io.netty.incubator.codec.http3.Http3Exception;
+import io.netty.incubator.codec.http3.Http3HeadersFrame;
+import io.netty.incubator.codec.http3.HttpConversionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.ballerina.stdlib.http.transport.contract.Constants.*;
+import static io.ballerina.stdlib.http.transport.contract.Constants.HTTP3_VERSION;
+import static io.ballerina.stdlib.http.transport.contract.Constants.HTTPS_SCHEME;
+import static io.ballerina.stdlib.http.transport.contract.Constants.
+        REMOTE_CLIENT_CLOSED_BEFORE_INITIATING_OUTBOUND_RESPONSE;
 
+
+/**
+ * State between start and end of outbound response headers write.
+ *
+ */
 public class SendingHeaders implements ListenerState {
 
     private static final Logger LOG = LoggerFactory.getLogger(SendingHeaders.class);
@@ -82,7 +94,8 @@ public class SendingHeaders implements ListenerState {
         //Not yet Implemented
     }
 
-    private void writeHeaders(HttpCarbonMessage outboundResponseMsg, Http3OutboundRespListener http3OutboundRespListener) {
+    private void writeHeaders(HttpCarbonMessage outboundResponseMsg,
+                              Http3OutboundRespListener http3OutboundRespListener) {
         // Construct Http3 headers
         outboundResponseMsg.getHeaders().
                 add(HttpConversionUtil.ExtensionHeaderNames.SCHEME.text(), HTTPS_SCHEME);

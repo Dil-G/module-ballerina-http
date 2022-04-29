@@ -1,9 +1,6 @@
 package io.ballerina.stdlib.http.testutils;
 
-import io.ballerina.runtime.api.PredefinedTypes;
-import io.ballerina.runtime.api.creators.TypeCreator;
 import io.ballerina.runtime.api.creators.ValueCreator;
-import io.ballerina.runtime.api.types.MapType;
 import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BString;
@@ -16,7 +13,14 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.incubator.codec.http3.*;
+import io.netty.incubator.codec.http3.DefaultHttp3DataFrame;
+import io.netty.incubator.codec.http3.DefaultHttp3HeadersFrame;
+import io.netty.incubator.codec.http3.Http3;
+import io.netty.incubator.codec.http3.Http3ClientConnectionHandler;
+import io.netty.incubator.codec.http3.Http3DataFrame;
+import io.netty.incubator.codec.http3.Http3HeadersFrame;
+import io.netty.incubator.codec.http3.Http3RequestStreamFrame;
+import io.netty.incubator.codec.http3.Http3RequestStreamInboundHandler;
 import io.netty.incubator.codec.quic.QuicChannel;
 import io.netty.incubator.codec.quic.QuicSslContext;
 import io.netty.incubator.codec.quic.QuicSslContextBuilder;
@@ -26,10 +30,12 @@ import io.netty.util.NetUtil;
 import io.netty.util.ReferenceCountUtil;
 
 import java.net.InetSocketAddress;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-
+/**
+ * Netty Http3 client for HTTP 3 Basic test.
+ *
+ */
 public final class Http3Client {
 
     static final int PORT = 8080;
@@ -41,7 +47,7 @@ public final class Http3Client {
 
         NioEventLoopGroup group = new NioEventLoopGroup(1);
 
-        BMap<BString, Object>  res = ValueCreator.createMapValue();;
+        BMap<BString, Object> res = ValueCreator.createMapValue();
 
         try {
             QuicSslContext context = QuicSslContextBuilder.forClient()
@@ -72,16 +78,16 @@ public final class Http3Client {
                         protected void channelRead(ChannelHandlerContext ctx,
                                                    Http3HeadersFrame frame, boolean isLast) {
                             String frameContent = String.valueOf(frame);
-                            res.put(StringUtils.fromString("Header"),StringUtils.fromString(frameContent));
+                            res.put(StringUtils.fromString("Header"), StringUtils.fromString(frameContent));
                             releaseFrameAndCloseIfLast(ctx, frame, isLast);
                         }
 
                         @Override
                         protected void channelRead(ChannelHandlerContext ctx,
                                                    Http3DataFrame frame, boolean isLast) {
-                            if(!isLast){
+                            if (!isLast) {
                                 String frameContent = String.valueOf(frame.content().toString(CharsetUtil.US_ASCII));
-                                res.put(StringUtils.fromString("Body"),StringUtils.fromString(frameContent));
+                                res.put(StringUtils.fromString("Body"), StringUtils.fromString(frameContent));
                             }
                             releaseFrameAndCloseIfLast(ctx, frame, isLast);
                         }
@@ -101,28 +107,28 @@ public final class Http3Client {
                     .authority("127.0.0.1:" + 9090)
                     .scheme("https");
 
-            if (method == "post") {
+            if (method.equals("post")) {
 
-                byte[] CONTENT;
+                byte[] content;
                 if (payload.getClass().equals(String.class)) {
-                    CONTENT = ((String) payload).getBytes(CharsetUtil.US_ASCII);
+                    content = ((String) payload).getBytes(CharsetUtil.US_ASCII);
 
                 } else {
-                    String CONTENTs = payload.toString();
-                    CONTENT = CONTENTs.getBytes(CharsetUtil.US_ASCII);
+                    String contents = payload.toString();
+                    content = contents.getBytes(CharsetUtil.US_ASCII);
 
-                    if ((payload.getClass()).toString().contains("XmlItem")){
-                        headersFrame.headers().add(HttpHeaderNames.CONTENT_TYPE,"application/xml");
-                    } else if ((payload.getClass()).toString().contains("MapValueImpl")){
-                        headersFrame.headers().add(HttpHeaderNames.CONTENT_TYPE,"application/json");
+                    if ((payload.getClass()).toString().contains("XmlItem")) {
+                        headersFrame.headers().add(HttpHeaderNames.CONTENT_TYPE, "application/xml");
+                    } else if ((payload.getClass()).toString().contains("MapValueImpl")) {
+                        headersFrame.headers().add(HttpHeaderNames.CONTENT_TYPE, "application/json");
                     }
                 }
 
                 streamChannel.write(headersFrame);
                 streamChannel.writeAndFlush(new DefaultHttp3DataFrame(
-                                Unpooled.wrappedBuffer(CONTENT)))
+                                Unpooled.wrappedBuffer(content)))
                         .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
-            } else if (method == "get") {
+            } else if (method.equals("get")) {
                 streamChannel.writeAndFlush(headersFrame)
                         .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
             }

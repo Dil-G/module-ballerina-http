@@ -14,10 +14,13 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
 
+/**
+ * Reads the HTTP/3  frames sent from client through the channel.
+ */
+
 public class Http3SourceHandler extends Http3RequestStreamInboundHandler {
     private final long streamId;
     private final String serverName;
-    private boolean connectedState;
     private Http3ServerChannel http3ServerChannel = new Http3ServerChannel();
     private ServerConnectorFuture serverConnectorFuture;
     private Http3ServerChannelInitializer http3serverChannelInitializer;
@@ -27,11 +30,13 @@ public class Http3SourceHandler extends Http3RequestStreamInboundHandler {
     private String remoteHost;
 
 
-    public Http3SourceHandler(long streamId, ServerConnectorFuture serverConnectorFuture, String interfaceId, String serverName) {
+    public Http3SourceHandler(long streamId, ServerConnectorFuture serverConnectorFuture, String interfaceId,
+                              String serverName, Http3ServerChannelInitializer http3ServerChannelInitializer) {
         this.interfaceId = interfaceId;
         this.serverConnectorFuture = serverConnectorFuture;
         this.streamId = streamId;
         this.serverName = serverName;
+        this.http3serverChannelInitializer = http3ServerChannelInitializer;
     }
 
 
@@ -53,9 +58,12 @@ public class Http3SourceHandler extends Http3RequestStreamInboundHandler {
         InboundMessageHolder inboundMessageHolder = http3ServerChannel.getInboundMessage(streamId);
         if (inboundMessageHolder != null) {
             sourceReqCMsg = inboundMessageHolder.getInboundMsg();
+            sourceReqCMsg.getHttp3MessageStateContext().getListenerState().readInboundRequestBody(this,
+                    http3DataFrame, isLast);
+        } else {
+            throw new RuntimeException("Headers not received before the Data frame");
         }
-        sourceReqCMsg.getHttp3MessageStateContext().getListenerState().readInboundRequestBody(this,
-                http3DataFrame, isLast);
+
     }
 
     @Override
@@ -101,10 +109,6 @@ public class Http3SourceHandler extends Http3RequestStreamInboundHandler {
         return ctx;
     }
 
-    public void setConnectedState(boolean connectedState) {
-        this.connectedState = connectedState;
-    }
-
     public SocketAddress getRemoteAddress() {
         return remoteAddress;
     }
@@ -116,6 +120,7 @@ public class Http3SourceHandler extends Http3RequestStreamInboundHandler {
     public String getRemoteHost() {
         return remoteHost;
     }
+
     public String getServerName() {
         return serverName;
     }

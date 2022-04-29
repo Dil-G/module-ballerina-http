@@ -33,7 +33,6 @@ import io.ballerina.stdlib.http.transport.contractimpl.common.Util;
 import io.ballerina.stdlib.http.transport.contractimpl.common.ssl.SSLConfig;
 import io.ballerina.stdlib.http.transport.contractimpl.common.ssl.SSLHandlerFactory;
 import io.ballerina.stdlib.http.transport.contractimpl.listener.ServerConnectorBootstrap;
-import io.ballerina.stdlib.http.transport.contractimpl.listener.states.http3.EntityBodyReceived;
 import io.ballerina.stdlib.http.transport.contractimpl.sender.channel.BootstrapConfiguration;
 import io.ballerina.stdlib.http.transport.contractimpl.sender.channel.pool.ConnectionManager;
 import io.ballerina.stdlib.http.transport.contractimpl.websocket.DefaultWebSocketClientConnector;
@@ -49,10 +48,13 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLException;
 import java.util.Map;
 
-import static io.ballerina.stdlib.http.transport.contract.Constants.*;
+import javax.net.ssl.SSLException;
+
+import static io.ballerina.stdlib.http.transport.contract.Constants.HTTP3_VERSION;
+import static io.ballerina.stdlib.http.transport.contract.Constants.PIPELINING_THREAD_COUNT;
+import static io.ballerina.stdlib.http.transport.contract.Constants.PIPELINING_THREAD_POOL_NAME;
 
 /**
  * Implementation of HttpWsConnectorFactory interface.
